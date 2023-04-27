@@ -4,13 +4,15 @@ import { LoginInputDTO, LoginOutputDTO } from "../dtos/login.dto"
 import { SignupInputDTO, SignupOutputDTO } from "../dtos/signup.dto"
 import { BadRequestError } from "../errors/BadRequestError"
 import { NotFoundError } from "../errors/NotFoundError"
-import { USER_ROLES, User } from "../models/User"
+import { TokenPayload, USER_ROLES, User } from "../models/User"
 import { IdGenerator } from "../services/IdGenerator"
+import { TokenManager } from "../services/TokenManager"
 
 export class UserBusiness {
   constructor(
     private userDatabase: UserDatabase,
-    private idGenerator: IdGenerator
+    private idGenerator: IdGenerator,
+    private tokenManager: TokenManager
   ) { }
 
   public getUsers = async (
@@ -64,9 +66,17 @@ export class UserBusiness {
     const newUserDB = newUser.toDBModel()
     await this.userDatabase.insertUser(newUserDB)
 
+    const payload: TokenPayload = {
+      id: newUser.getId(),
+      name: newUser.getName(),
+      role: newUser.getRole()
+    }
+
+    const token = this.tokenManager.createToken(payload)
+
     const output: SignupOutputDTO = {
       message: "Cadastro realizado com sucesso",
-      token: "token"
+      token
     }
 
     return output
